@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shit's Sinh Nguyen</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: #87ceeb;
+        overflow: hidden;
+      }
+      #gameContainer {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: #222; /* fallback */
+      }
+      #gameCanvas {
+        display: block;
+        margin: 0 auto;
+        background: transparent;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        border-radius: 20px;
+        z-index: 1;
+      }
+      #score {
+        position: absolute;
+        top: 20px;
+        right: 40px;
+        font-size: 2rem;
+        color: #fff;
+        text-shadow: 2px 2px 8px #333;
+        z-index: 10;
+        user-select: none;
+        display: none;
+      }
+      #startScreen,
+      #gameOverScreen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+      }
+      .screen-content {
+        background: rgba(0, 0, 0, 0.55);
+        border-radius: 18px;
+        padding: 36px 32px 28px 32px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 260px;
+        max-width: 90vw;
+      }
+      .screen-title {
+        color: #fff;
+        font-size: 3rem;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 18px;
+        text-shadow: 2px 2px 8px #333;
+        letter-spacing: 2px;
+        line-height: 1.1;
+      }
+      .screen-instructions {
+        color: #f3f3f3;
+        font-size: 1.2rem;
+        text-align: center;
+        margin-bottom: 24px;
+        text-shadow: 1px 1px 4px #222;
+        line-height: 1.5;
+      }
+      #startBtn,
+      #restartBtn {
+        padding: 15px 40px;
+        font-size: 1.5rem;
+        border: none;
+        border-radius: 10px;
+        background: #ffb300;
+        color: #fff;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        transition: background 0.2s;
+        margin-top: 20px;
+      }
+      #startBtn:hover,
+      #restartBtn:hover {
+        background: #ff8800;
+      }
+      @media (max-width: 600px) {
+        #gameCanvas {
+          width: 95vw !important;
+          height: 70vw !important;
+          max-width: 100vw;
+          max-height: 80vh;
+        }
+        #score {
+          font-size: 1.2rem;
+          right: 10px;
+          top: 10px;
+        }
+        .screen-content {
+          padding: 18px 8vw 16px 8vw;
+          min-width: 0;
+        }
+        .screen-title {
+          font-size: 2rem;
+        }
+        .screen-instructions {
+          font-size: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="gameContainer">
+      <div id="score">0</div>
+      <div
+        id="fireCount"
+        style="
+          position: absolute;
+          top: 60px;
+          right: 40px;
+          font-size: 1.2rem;
+          color: #ffba44;
+          text-shadow: 1px 1px 4px #222;
+          z-index: 10;
+          user-select: none;
+          display: none;
+        "
+      >
+        Fire: 0
+      </div>
+      <canvas id="gameCanvas" width="480" height="640"></canvas>
+      <div id="startScreen">
+        <div class="screen-content">
+          <div class="screen-title">Shit's Sinh Nguyen</div>
+          <div class="screen-instructions">
+            Press <b>Space</b> or <b>Tap/Click</b> to jump.<br />
+            Avoid the pipes. Good luck!<br />
+            <span
+              style="
+                color: #ffb300;
+                font-weight: bold;
+                display: block;
+                margin-top: 10px;
+              "
+            >
+              Press E to unleash fire.<br />
+              Gain 1 fire ability every 5 points.
+            </span>
+          </div>
+          <button id="startBtn">Start Game</button>
+        </div>
+      </div>
+      <div id="gameOverScreen" style="display: none">
+        <div class="screen-content">
+          <div class="screen-title" style="font-size: 2.2rem">Game Over</div>
+          <div
+            id="finalScore"
+            style="
+              color: #fff;
+              font-size: 1.5rem;
+              margin-bottom: 10px;
+              text-align: center;
+            "
+          ></div>
+          <div
+            style="
+              color: #ff4444;
+              font-size: 1.9rem;
+              font-weight: bold;
+              margin-bottom: 10px;
+              text-align: center;
+            "
+          >
+            You suck!
+          </div>
+          <button id="restartBtn">Restart</button>
+        </div>
+      </div>
+    </div>
+    <audio
+      id="jumpSound"
+      src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae6b6.mp3"
+      preload="auto"
+    ></audio>
+    <audio
+      id="scoreSound"
+      src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae6b6.mp3"
+      preload="auto"
+    ></audio>
+    <audio
+      id="hitSound"
+      src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae6b6.mp3"
+      preload="auto"
+    ></audio>
+    <!-- Background Music -->
+    <audio id="bgMusic" src="30.mp3" preload="auto" loop></audio>
+    <!-- Game Over Sound -->
+    <audio id="endSound" src="end.mp3" preload="auto"></audio>
+    <audio id="scoreWeSound" src="we.mp3" preload="auto"></audio>
+    <audio id="gheSound" src="ghe.mp3" preload="auto"></audio>
+    <audio id="metSound" src="met.mp3" preload="auto"></audio>
+    <script>
+      // --- Player & Pipe Images ---
+      const birdImg = new Image();
+      birdImg.src =
+        "https://easydrawingguides.com/wp-content/uploads/2022/01/realistic-dragon-step-by-step-drawing-tutorial-step-10.png";
+      const pipeImg = new Image();
+      pipeImg.src = "pipe.png";
+      const fireImg = new Image();
+      fireImg.src = "fire.png";
+
+      // --- Parallax Background Images ---
+      const bgFar = new Image();
+      bgFar.src =
+        "https://img.freepik.com/free-vector/sky-background-video-conferencing_23-2148623063.jpg"; // Far background (sky/mountains)
+      const bgNear = new Image();
+      bgNear.src =
+        "https://img.freepik.com/free-vector/forest-landscape-background_1308-62647.jpg"; // Near background (trees/ground)
+      const bgMain = new Image();
+      bgMain.src = "download.jpeg"; // Your main background
+
+      // --- Game Constants ---
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      const scoreDiv = document.getElementById("score");
+      const startScreen = document.getElementById("startScreen");
+      const gameOverScreen = document.getElementById("gameOverScreen");
+      const finalScoreDiv = document.getElementById("finalScore");
+      const jumpSound = document.getElementById("jumpSound");
+      const scoreSound = document.getElementById("scoreSound");
+      const hitSound = document.getElementById("hitSound");
+      const bgMusic = document.getElementById("bgMusic");
+      const endSound = document.getElementById("endSound");
+      const scoreWeSound = document.getElementById("scoreWeSound");
+      const gheSound = document.getElementById("gheSound");
+      const metSound = document.getElementById("metSound");
+
+      // Responsive canvas
+      function resizeCanvas() {
+        let w = window.innerWidth > 600 ? 480 : window.innerWidth * 0.95;
+        let h = window.innerWidth > 600 ? 640 : window.innerWidth * 0.7;
+        canvas.width = w;
+        canvas.height = h;
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+
+      // --- Game Variables ---
+      let bird,
+        pipes,
+        score,
+        gameState,
+        gravity,
+        jumpStrength,
+        pipeSpeed,
+        gap,
+        frame,
+        idleAnimTime;
+      // Parallax offsets
+      let bgFarX = 0,
+        bgNearX = 0;
+      let lasers = [];
+      let laserCharges = 0;
+      let fires = [];
+      let fireCharges = 1; // Có 1 lần bắn lửa ngay từ đầu game
+
+      // --- Game Functions ---
+      function resetGame() {
+        bird = {
+          x: canvas.width * 0.25,
+          y: canvas.height * 0.35,
+          width: 66,
+          height: 72,
+          velocity: 0,
+          rotation: 0,
+          isJumping: false,
+          jumpTime: 0,
+          jumpDuration: 18,
+          jumpStartY: 0,
+        };
+        pipes = [];
+        score = 0;
+        gravity = 0.4;
+        jumpStrength = -7;
+        pipeSpeed = 3;
+        gap = canvas.height * 0.25;
+        frame = 0;
+        idleAnimTime = 0;
+        bgFarX = 0;
+        bgNearX = 0;
+        lasers = [];
+        laserCharges = 1;
+        fires = [];
+        fireCharges = 1;
+        spawnPipe();
+      }
+
+      function spawnPipe() {
+        const minHeight = canvas.height * 0.15;
+        const maxHeight = canvas.height * 0.55;
+        const topHeight = Math.random() * (maxHeight - minHeight) + minHeight;
+        pipes.push({
+          x: canvas.width + 40,
+          width: 60,
+          top: topHeight,
+          bottom: topHeight + gap,
+          passed: false,
+        });
+      }
+
+      // --- Parallax Background Drawing ---
+      function drawParallaxBackground() {
+        // Far background (scrolls slowest)
+        let farSpeed = pipeSpeed * 0.25;
+        bgFarX -= farSpeed;
+        if (bgFarX <= -canvas.width) bgFarX += canvas.width;
+        for (let i = 0; i < 2; i++) {
+          ctx.drawImage(
+            bgFar,
+            bgFarX + i * canvas.width,
+            0,
+            canvas.width,
+            canvas.height
+          );
+        }
+        // Near background (scrolls faster)
+        let nearSpeed = pipeSpeed * 0.6;
+        bgNearX -= nearSpeed;
+        if (bgNearX <= -canvas.width) bgNearX += canvas.width;
+        for (let i = 0; i < 2; i++) {
+          ctx.drawImage(
+            bgNear,
+            bgNearX + i * canvas.width,
+            0,
+            canvas.width,
+            canvas.height
+          );
+        }
+        // Main background (your image, static)
+        ctx.drawImage(bgMain, 0, 0, canvas.width, canvas.height);
+      }
+
+      function drawBird(isIdle = false) {
+        ctx.save();
+        let y = bird.y;
+        // Idle floating animation (on start screen)
+        if (isIdle) {
+          y = bird.y + Math.sin(idleAnimTime / 12) * 8;
+        }
+        ctx.translate(bird.x + bird.width / 2, y + bird.height / 2);
+        ctx.rotate(bird.rotation);
+        ctx.drawImage(
+          birdImg,
+          -bird.width / 2,
+          -bird.height / 2,
+          bird.width,
+          bird.height
+        );
+        ctx.restore();
+      }
+
+      function drawPipes() {
+        pipes.forEach((pipe) => {
+          // Top pipe (flip vertically)
+          ctx.save();
+          ctx.translate(pipe.x + pipe.width / 2, pipe.top / 2);
+          ctx.scale(1, -1);
+          ctx.drawImage(
+            pipeImg,
+            -pipe.width / 2,
+            -pipe.top / 2,
+            pipe.width,
+            pipe.top
+          );
+          ctx.restore();
+          // Bottom pipe
+          ctx.drawImage(
+            pipeImg,
+            pipe.x,
+            pipe.bottom,
+            pipe.width,
+            canvas.height - pipe.bottom
+          );
+        });
+      }
+
+      function drawScore() {
+        scoreDiv.textContent = score;
+        const fireCountDiv = document.getElementById("fireCount");
+        fireCountDiv.textContent = "Fire: " + laserCharges;
+        if (gameState === "playing") {
+          scoreDiv.style.display = "block";
+          fireCountDiv.style.display = "block";
+        } else {
+          scoreDiv.style.display = "none";
+          fireCountDiv.style.display = "none";
+        }
+      }
+
+      // --- Bird Physics with Easing Jump ---
+      function updateBird() {
+        if (bird.isJumping) {
+          bird.jumpTime++;
+          // Quadratic easing out: y = -jumpStrength * (1 - (t/d))^2
+          let t = bird.jumpTime;
+          let d = bird.jumpDuration;
+          let progress = t / d;
+          if (progress < 1) {
+            // Easing upward
+            bird.velocity = jumpStrength * (1 - progress) * (1 - progress);
+          } else {
+            bird.isJumping = false;
+          }
+        } else {
+          bird.velocity += gravity;
+        }
+        bird.y += bird.velocity;
+        // Rotate bird
+        bird.rotation = Math.min(Math.PI / 4, bird.velocity / 10);
+      }
+
+      function jump() {
+        bird.isJumping = true;
+        bird.jumpTime = 0;
+        bird.jumpStartY = bird.y;
+        jumpSound.currentTime = 0;
+        jumpSound.play();
+      }
+
+      function updatePipes() {
+        for (let i = 0; i < pipes.length; i++) {
+          pipes[i].x -= pipeSpeed;
+          // Score
+          if (!pipes[i].passed && pipes[i].x + pipes[i].width < bird.x) {
+            pipes[i].passed = true;
+            score++;
+            // Play score sound
+            scoreSound.currentTime = 0;
+            scoreSound.play();
+            // Play we.mp3 sound
+            scoreWeSound.currentTime = 0;
+            scoreWeSound.play();
+            // Play ghe.mp3 when score reaches 10
+            if (score === 10) {
+              gheSound.currentTime = 0;
+              gheSound.play();
+            }
+            // Play met.mp3 when score reaches 15
+            if (score === 15) {
+              metSound.currentTime = 0;
+              metSound.play();
+            }
+            // --- Increase difficulty every 5 points ---
+            if (score % 5 === 0) {
+              pipeSpeed += 0.25; // Increase pipe speed
+              laserCharges++; // +1 lần bắn fire mỗi 5 điểm
+            }
+          }
+        }
+        // Remove off-screen pipes
+        if (pipes.length && pipes[0].x + pipes[0].width < 0) {
+          pipes.shift();
+        }
+        // Spawn new pipe
+        if (
+          pipes.length === 0 ||
+          pipes[pipes.length - 1].x < canvas.width - 260
+        ) {
+          spawnPipe();
+        }
+      }
+
+      function checkCollision() {
+        // Ground or ceiling
+        if (bird.y + bird.height > canvas.height || bird.y < 0) {
+          return true;
+        }
+        // Pipes
+        for (let pipe of pipes) {
+          if (
+            bird.x + bird.width > pipe.x &&
+            bird.x < pipe.x + pipe.width &&
+            (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
+          ) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function shootFire() {
+        if (laserCharges > 0) {
+          lasers.push({
+            x: bird.x + bird.width,
+            y: bird.y + bird.height / 2 - 32,
+            width: 64,
+            height: 48,
+            speed: 10,
+          });
+          laserCharges--;
+        }
+      }
+
+      function updateLasers() {
+        for (let i = lasers.length - 1; i >= 0; i--) {
+          lasers[i].x += lasers[i].speed;
+          if (lasers[i].x > canvas.width) {
+            lasers.splice(i, 1);
+            continue;
+          }
+          for (let j = pipes.length - 1; j >= 0; j--) {
+            let pipe = pipes[j];
+            // Top pipe
+            if (
+              lasers[i].x + lasers[i].width > pipe.x &&
+              lasers[i].x < pipe.x + pipe.width &&
+              lasers[i].y < pipe.top &&
+              lasers[i].y + lasers[i].height > 0
+            ) {
+              pipes.splice(j, 1);
+              lasers.splice(i, 1);
+              break;
+            }
+            // Bottom pipe
+            if (
+              lasers[i] &&
+              lasers[i].x + lasers[i].width > pipe.x &&
+              lasers[i].x < pipe.x + pipe.width &&
+              lasers[i].y < canvas.height &&
+              lasers[i].y + lasers[i].height > pipe.bottom
+            ) {
+              pipes.splice(j, 1);
+              lasers.splice(i, 1);
+              break;
+            }
+          }
+        }
+      }
+
+      function drawLasers() {
+        lasers.forEach((laser) => {
+          ctx.drawImage(fireImg, laser.x, laser.y, laser.width, laser.height);
+        });
+      }
+
+      function drawFires() {
+        fires.forEach((fire) => {
+          ctx.drawImage(fireImg, fire.x, fire.y, fire.width, fire.height);
+        });
+      }
+
+      function gameLoop() {
+        if (gameState !== "playing") return;
+        frame++;
+        drawParallaxBackground(); // Parallax backgrounds
+        drawPipes();
+        updatePipes();
+        updateBird();
+        updateLasers();
+        drawLasers();
+        drawBird();
+        drawScore();
+        if (checkCollision()) {
+          hitSound.currentTime = 0;
+          hitSound.play();
+          endGame();
+          return;
+        }
+        requestAnimationFrame(gameLoop);
+      }
+
+      function startGame() {
+        resetGame();
+        gameState = "playing";
+        scoreDiv.style.display = "block";
+        startScreen.style.display = "none";
+        gameOverScreen.style.display = "none";
+        // Stop end music if playing
+        if (!endSound.paused) {
+          endSound.pause();
+          endSound.currentTime = 0;
+        }
+        // Play background music
+        if (bgMusic.paused) {
+          bgMusic.currentTime = 0;
+          bgMusic.play();
+        }
+        requestAnimationFrame(gameLoop);
+      }
+
+      function endGame() {
+        gameState = "gameover";
+        scoreDiv.style.display = "none";
+        finalScoreDiv.textContent = `Your Score: ${score}`;
+        gameOverScreen.style.display = "flex";
+        // Pause background music
+        if (!bgMusic.paused) {
+          bgMusic.pause();
+        }
+        // Play end music (loop)
+        endSound.currentTime = 0;
+        endSound.play();
+      }
+
+      // --- Controls ---
+      function handleJump(e) {
+        if (gameState === "playing") {
+          jump();
+        }
+      }
+      function handleStart(e) {
+        if (gameState !== "playing") {
+          startGame();
+        }
+      }
+
+      // Ensure event listeners are set after DOM is loaded
+      window.addEventListener("DOMContentLoaded", function () {
+        const startBtn = document.getElementById("startBtn");
+        const restartBtn = document.getElementById("restartBtn");
+        startBtn.addEventListener("click", startGame);
+        restartBtn.addEventListener("click", startGame);
+        // Also allow tap/click on game over screen to restart
+        gameOverScreen.addEventListener("mousedown", startGame);
+        gameOverScreen.addEventListener("touchstart", function (e) {
+          e.preventDefault();
+          startGame();
+        });
+
+        // Idle animation on start screen (no bird shown)
+        function idleLoop() {
+          if (gameState !== "start") return;
+          idleAnimTime++;
+          drawParallaxBackground();
+          // No drawBird here!
+          requestAnimationFrame(idleLoop);
+        }
+        // Start idle animation
+        resetGame();
+        gameState = "start";
+        idleLoop();
+      });
+
+      document.addEventListener("keydown", function (e) {
+        if (
+          e.code === "Space" ||
+          (e.code === "Enter" && gameState === "gameover")
+        ) {
+          if (gameState === "playing") {
+            jump();
+          } else if (gameState === "start" || gameState === "gameover") {
+            startGame();
+          }
+        }
+        if (e.code === "KeyE" && gameState === "playing") {
+          shootFire();
+        }
+      });
+      canvas.addEventListener("mousedown", handleJump);
+      canvas.addEventListener("touchstart", function (e) {
+        e.preventDefault();
+        handleJump();
+      });
+
+      // --- Initial State ---
+      // (Handled in DOMContentLoaded for idle animation)
+    </script>
+  </body>
+</html>
